@@ -143,6 +143,32 @@ fn command_status (
   }
 }
 
+struct SpamTriggerState {
+  trigger_timer: Timer
+}
+
+impl Default for SpamTriggerState {
+  fn default() -> Self {
+    SpamTriggerState {
+      trigger_timer: Timer::from_seconds(1.0, true)
+    }
+  }
+}
+
+fn spammer(
+  time: Res<Time>,
+  mut state: ResMut<SpamTriggerState>,
+  mut command_writer: EventWriter<CommandEvent>
+) {
+  if state.trigger_timer.tick(time.delta()).finished() {
+    command_writer.send(CommandEvent {
+      id: CommandId::Status,
+      argc: 0,
+      argv: vec![]
+    });
+  }
+}
+
 
 /*
  * CommandPlugin
@@ -154,7 +180,9 @@ pub struct CommandPlugin;
 impl Plugin for CommandPlugin {
   fn build(&self, app: &mut App) {
     app.add_event::<CommandEvent>()
-      .add_system(read_standard_input)
+      //.add_system(read_standard_input)
+      .add_system(spammer)
+      .init_resource::<SpamTriggerState>()
       .add_system(command_quit)
       .add_system(command_status)
       .add_system(command_unknown);
