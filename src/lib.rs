@@ -1,19 +1,33 @@
-use bevy::{
-  prelude::*,
-  core::CorePlugin,
-  app::ScheduleRunnerPlugin,
-  log::LogPlugin
-};
+use bevy::prelude::{Plugin, App};
 
-mod commands;
-use crate::commands::CommandPlugin;
+mod chunk;
+mod map;
+pub mod material;
+mod messages;
+mod storage;
+mod world;
+
+use material::VoxelMaterialRegistry;
+
+pub struct VoxelServerPlugin;
+impl Plugin for VoxelServerPlugin {
+	fn build(& self, app: & mut App) {
+		app.init_resource::<VoxelMaterialRegistry>();
+		/*
+		app.insert_resource(VoxelMap::<Voxel, ChunkShape>::new(ChunkShape {}))
+			.add_plugin(chunks::VoxelChunkingPlugin)
+			.add_plugin(meshing::VoxelMeshingPlugin)
+			.add_plugin(terrain::VoxelTerrainPlugin)
+			.add_plugin(super::render::VoxelRenderPipelinePlugin)
+			.add_plugin(super::material::VoxelMaterialPlugin)
+			.add_plugin(materials::VoxelBaseMaterialsPlugin)
+			.add_plugin(player::VoxelWorldPlayerControllerPlugin);
+		*/
+	}
+}
 
 /*
 use ndshape::{ConstPow2Shape2u8, ConstPow2Shape3u16};
-struct Voxel(bool);
-
-const AIR: Voxel = Voxel(false);
-const GROUND: Voxel = Voxel(true);
 
 pub struct Chunk([Voxel; ConstPow2Shape3u16::SIZE as usize]);
 pub struct Chunk32([Voxel; ConstPow2Shape3u32::SIZE as usize]);
@@ -25,12 +39,3 @@ struct Map {
   chunk_map: [Chunk; ConstPow2Shape2u8::SIZE as usize]
 }
 */
-
-fn main() {
-  App::new()
-    .add_plugin(CorePlugin::default())
-    .add_plugin(ScheduleRunnerPlugin::default())
-    .add_plugin(LogPlugin::default())
-    .add_plugin(CommandPlugin)
-    .run();
-}
