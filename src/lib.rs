@@ -1,10 +1,8 @@
 use bevy::prelude::{Plugin, App};
 
-mod chunk;
-mod map;
+mod storage;
 pub mod material;
 mod messages;
-mod storage;
 mod world;
 
 use material::VoxelMaterialRegistry;

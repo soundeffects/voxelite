@@ -1,18 +1,4 @@
-/*
- * Voxel
- *
- * The world is subdivided into a cubic grid, where each cell is a voxel.
- * This struct stores the characteristics that every cell holds at a
- * minimum. This includes the material that fills the cell.
- */
-struct Voxel {
-	material_id: u16
-}
-impl Default for Voxel {
-	fn default() -> Self {
-		Voxel { material_id: 0 }
-	}
-}
+use super::row::{CHUNK_SIZE, Row};
 
 /*
  * Chunk
@@ -25,7 +11,7 @@ impl Default for Voxel {
  * times.
  */
 pub struct Chunk {
-	rows: Vec<Voxel>
+	rows: [Box<dyn Row>; CHUNK_SIZE * CHUNK_SIZE]
 }
 impl Chunk {
 	pub fn new() -> Self {

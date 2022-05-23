@@ -1,6 +1,6 @@
 use bevy::utils::HashMap;
 
-use crate::chunk::{Chunk, ChunkPosition};
+use super::chunk::{Chunk, ChunkPosition};
 
 /*
  * VoxelMap
