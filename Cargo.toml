@@ -9,6 +9,5 @@ license = "MIT OR Apache"
 [dependencies]
 bevy = "0.7"
 ndshape = "0.3.0"
-
-[dev-dependencies]
+block-mesh = "0.2.0"
 bevy_flycam = "0.7"
