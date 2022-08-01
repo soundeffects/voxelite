@@ -1,13 +1,14 @@
 [package]
-name = "bevy-voxel-server"
+name = "voxelite"
 version = "0.0.1"
 edition = "2021"
 authors = ["James Youngblood (soundeffects)"]
-description = "Handles running the logic of a voxel game, for clients to connect to."
+description = "A voxel game, for adventurers, engineers, and socialites alike."
 license = "MIT OR Apache"
 
 [dependencies]
-bevy = "0.7"
+bevy = "0.8"
 ndshape = "0.3.0"
 block-mesh = "0.2.0"
 rand = "0.8.5"
+futures-lite = "1.12.0"

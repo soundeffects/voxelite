@@ -14,12 +14,16 @@ use bevy::{
 use rand::prelude::*;
 use crate::voxel::{Voxel, EMPTY, FULL};
 
+#[derive(Clone)]
 pub struct Chunk {
 	voxel_data: Vec<Voxel>
 }
 
-pub type ChunkShape = ConstShape3u32<32, 32, 32>;
-pub type ChunkShapeWithBorder = ConstShape3u32<34, 34, 34>;
+pub const CHUNK_DIM: u32 = 32;
+//pub const CHUNK_BORDER_DIM: u32 = CHUNK_DIM + 2;
+pub type ChunkShape = ConstShape3u32<CHUNK_DIM, CHUNK_DIM, CHUNK_DIM>;
+//pub type ChunkShapeWithBorder
+//	= ConstShape3u32<CHUNK_BORDER_DIM, CHUNK_BORDER_DIM, CHUNK_BORDER_DIM>;
 
 impl Chunk {
 	pub fn new() -> Self {

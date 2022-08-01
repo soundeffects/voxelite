@@ -28,26 +28,20 @@ pub struct PlayerSettings {
 	pub view_distance: usize,
 	pub movement_speed: f32,
 	pub mouse_sensitivity: f32,
-	pub field_of_view: f32
 }
 
 impl Default for PlayerSettings {
 	fn default() -> Self {
 		Self {
-			view_distance: 6,
+			view_distance: 1,
 			movement_speed: 20.0,
 			mouse_sensitivity: 0.5,
-			field_of_view: 0.5
 		}
 	}
 }
 
-fn setup(mut commands: Commands, settings: Res<PlayerSettings>) {
-	commands.spawn_bundle(PerspectiveCameraBundle {
-		perspective_projection: PerspectiveProjection {
-			fov: PI * settings.field_of_view,
-			..Default::default()
-		},
+fn setup(mut commands: Commands) {
+	commands.spawn_bundle(Camera3dBundle {
 		transform: Transform::from_translation(Vec3::ZERO),
 		..Default::default()
 	})
