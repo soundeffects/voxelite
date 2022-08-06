@@ -1,9 +1,6 @@
-use std::f32::consts::{PI, FRAC_PI_2};
-
-use bevy::{
-	prelude::*,
-	input::mouse::MouseMotion
-};
+use std::f32::consts::FRAC_PI_2;
+use bevy::prelude::*;
+use bevy::input::mouse::MouseMotion;
 
 pub struct PlayerControllerPlugin;
 

@@ -1,16 +1,8 @@
-use block_mesh::{
-	ndshape::{ConstShape, ConstShape3u32},
-	greedy_quads,
-	GreedyQuadsBuffer,
-	RIGHT_HANDED_Y_UP_CONFIG
-};
-use bevy::{
-	prelude::*,
-	render::{
-		mesh::{Indices, VertexAttributeValues},
-		render_resource::PrimitiveTopology
-	}
-};
+use ndshape::{ConstShape, ConstShape3u32};
+use block_mesh::*;
+use bevy::prelude::*;
+use bevy::render::mesh::{Indices, VertexAttributeValues};
+use bevy::render::render_resource::PrimitiveTopology;
 use rand::prelude::*;
 use crate::voxel::{Voxel, EMPTY, FULL};
 
@@ -26,7 +18,7 @@ pub type ChunkShape = ConstShape3u32<CHUNK_DIM, CHUNK_DIM, CHUNK_DIM>;
 //	= ConstShape3u32<CHUNK_BORDER_DIM, CHUNK_BORDER_DIM, CHUNK_BORDER_DIM>;
 
 impl Chunk {
-	pub fn new() -> Self {
+	/*pub fn new() -> Self {
 		Self {
 			voxel_data: vec![EMPTY; ChunkShape::SIZE as usize]
 		}
@@ -34,9 +26,12 @@ impl Chunk {
 
 	pub fn from(voxel_data: Vec<Voxel>) -> Self  {
 		Self { voxel_data }
-	}
+	}*/
 
-	pub fn generate() -> Self {
+	pub fn generate(
+		_chunk_pos: UVec3,
+		_generator: impl Fn(UVec3) -> Voxel
+	) -> Self {
 		let mut voxel_data = vec![EMPTY; ChunkShape::SIZE as usize];
 		for index in 0..voxel_data.len() {
 			let coordinates = ChunkShape::delinearize(index as u32);
@@ -50,8 +45,7 @@ impl Chunk {
 
 	pub fn mesh(
 		&self,
-		meshes: &mut Assets<Mesh>,
-	) -> Handle<Mesh> {
+	) -> Mesh {
 		let faces = RIGHT_HANDED_Y_UP_CONFIG.faces;
 
 		let mut buffer = GreedyQuadsBuffer::new(self.voxel_data.len());
@@ -102,6 +96,6 @@ impl Chunk {
 
 		mesh.set_indices(Some(Indices::U32(indices.clone())));
 
-		meshes.add(mesh)
+		mesh
 	}
 }

@@ -1,60 +1,72 @@
-use bevy::{
-	utils::HashMap,
-	tasks::{AsyncComputeTaskPool, Task},
-	prelude::*
-};
+use bevy::tasks::{AsyncComputeTaskPool, Task};
+use bevy::utils::HashSet;
+use bevy::prelude::*;
 use futures_lite::future::{block_on, poll_once};
-use crate::{
-	chunk::{Chunk, CHUNK_DIM},
-	player_controller::{PlayerController, PlayerSettings}
-};
+use ndshape::{Shape, RuntimeShape};
+use crate::chunk::{Chunk, CHUNK_DIM};
+use crate::player_controller::{PlayerController, PlayerSettings};
+use crate::voxel::EMPTY;
 
-#[derive(Default)]
 pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
 	fn build(&self, app: &mut App) {
-		app.init_resource::<World>()
-			.add_system(spawn_chunk_tasks)
-			.add_system(handle_chunk_tasks)
-			.add_system(despawn_chunks);
+		app.insert_resource::<World>(World::generate([10, 4, 10]))
+			.add_system(spawn_mesh_tasks)
+			.add_system(handle_mesh_tasks);
 	}
 }
 
-#[derive(Clone)]
-enum ChunkSlot {
-	Generating,
-	Generated(Chunk)
-}
-
-#[derive(Default)]
 pub struct World {
-	chunks: HashMap<IVec3, ChunkSlot>
+	shape: RuntimeShape<u32, 3>,
+	chunks: Vec<Chunk>,
+	visible: HashSet<UVec3>
 }
 
 impl World {
-	pub fn chunk_pos(world_position: Vec3) -> IVec3 {
-		IVec3::new(
-			(world_position.x / CHUNK_DIM as f32).floor() as i32,
-			(world_position.y / CHUNK_DIM as f32).floor() as i32,
-			(world_position.z / CHUNK_DIM as f32).floor() as i32
-		)
+	pub fn chunk_pos(world_position: Vec3) -> UVec3 {
+		(world_position / CHUNK_DIM as f32).as_uvec3()
 	}
 
-	pub fn world_position(chunk_pos: IVec3) -> Vec3 {
-		Vec3::new(
-			(chunk_pos.x * CHUNK_DIM as i32) as f32,
-			(chunk_pos.y * CHUNK_DIM as i32) as f32,
-			(chunk_pos.z * CHUNK_DIM as i32) as f32
-		)
+	pub fn world_position(chunk_pos: UVec3) -> Vec3 {
+		(chunk_pos * CHUNK_DIM).as_vec3()
+	}
+
+	pub fn out_of_bounds(&self, chunk_pos: IVec3) -> bool {
+		let bounds = self.shape.as_array();
+		let out = |coord: i32, bound_index: usize| {
+			coord < 0 || coord >= bounds[bound_index] as i32
+		};
+		out(chunk_pos.x, 0) || out(chunk_pos.y, 1) || out(chunk_pos.z, 2)
+	}
+
+	pub fn generate(dimensions: [u32; 3]) -> Self {
+		let shape = RuntimeShape::<u32, 3>::new(dimensions);
+		let mut chunks = Vec::<Chunk>::new();
+
+		for index in 0..shape.size() {
+			info!("{} out of {} generated", index, shape.size());
+			chunks.push(
+				Chunk::generate(
+					UVec3::from_array(shape.delinearize(index)),
+					|_| { EMPTY }
+				)
+			);
+		}
+
+		World {
+			shape,
+			chunks,
+			visible: HashSet::new()
+		}
 	}
 }
-struct ChunkResult(IVec3, ChunkSlot);
 
 #[derive(Component)]
-struct ChunkResultTask(Task<ChunkResult>);
+struct MeshResultTask(Task<MeshResult>);
+struct MeshResult(UVec3, Mesh);
 
-fn spawn_chunk_tasks(
+fn spawn_mesh_tasks(
 	mut commands: Commands,
 	settings: Res<PlayerSettings>,
 	mut world: ResMut<World>,
@@ -69,16 +81,18 @@ fn spawn_chunk_tasks(
 		for x in -dist..dist {
 			for y in -dist..dist {
 				for z in -dist..dist {
-					let chunk_pos = player_chunk + IVec3::new(x, y, z);
-					if !world.chunks.contains_key(&chunk_pos) {
-						let task = thread_pool.spawn(async move {
-							ChunkResult(
-								chunk_pos,
-								ChunkSlot::Generated(Chunk::generate())
-							)
-						});
-						commands.spawn().insert(ChunkResultTask(task));
-						world.chunks.insert(chunk_pos, ChunkSlot::Generating);
+					let unbound_pos = player_chunk.as_ivec3() + IVec3::new(x, y, z);
+					if !world.out_of_bounds(unbound_pos) {
+						let chunk_pos = unbound_pos.as_uvec3();
+						if !world.visible.contains(&chunk_pos) {
+							let index = world.shape.linearize(chunk_pos.to_array());
+							let chunk = world.chunks[index as usize].clone();
+							let task = thread_pool.spawn(async move {
+								MeshResult(chunk_pos, chunk.mesh())
+							});
+							commands.spawn().insert(MeshResultTask(task));
+							world.visible.insert(chunk_pos);
+						}
 					}
 				}
 			}
@@ -86,35 +100,44 @@ fn spawn_chunk_tasks(
 	}
 }
 
-fn handle_chunk_tasks(
+fn handle_mesh_tasks(
 	mut commands: Commands,
-	mut world: ResMut<World>,
-	mut tasks: Query<(Entity, &mut ChunkResultTask)>,
+	mut tasks: Query<(Entity, &mut MeshResultTask)>,
 	mut meshes: ResMut<Assets<Mesh>>,
 	mut materials: ResMut<Assets<StandardMaterial>>
 ) {
 	for (entity, mut task) in &mut tasks {
-		if let Some(ChunkResult(chunk_pos, generated_chunk))
+		if let Some(MeshResult(chunk_pos, mesh))
 			= block_on(poll_once(&mut task.0)) {
-				if let ChunkSlot::Generated(chunk) = generated_chunk {
-					let mesh = chunk.mesh(&mut meshes);
-					world.chunks.insert(chunk_pos, ChunkSlot::Generated(chunk));
-					let mut material
-						= StandardMaterial::from(Color::rgb(0.0, 0.0, 0.0));
-					material.perceptual_roughness = 0.9;
-					commands.spawn_bundle(PbrBundle {
-						mesh,
-						material: materials.add(material),
-						transform: Transform::from_translation(World::world_position(chunk_pos)),
-						..Default::default()
-					});
-				}
-				commands.entity(entity).remove::<ChunkResultTask>();
-			}
-
+			let mut material = StandardMaterial::from(Color::rgb(0., 0., 0.));
+			material.perceptual_roughness = 0.9;
+			commands.spawn_bundle(PbrBundle {
+				mesh: meshes.add(mesh),
+				material: materials.add(material),
+				transform: Transform::from_translation(
+					World::world_position(chunk_pos)
+				).with_scale(Vec3::new(1.063, 1.063, 1.063)),
+				..Default::default()
+			});
+			commands.entity(entity).remove::<MeshResultTask>();
+		}
 	}
 }
 
-fn despawn_chunks() {
+#[cfg(test)]
+mod tests {
+	use crate::world::World;
+	use bevy::math::IVec3;
 
+	#[test]
+	fn world_generation_succeeds() {
+		World::generate([4, 4, 4]);
+	}
+
+	#[test]
+	fn world_bounding_confirmation() {
+		let world = World::generate([4, 4, 4]);
+		assert!(world.out_of_bounds(IVec3::new(0, -1, 0)));
+		assert!(world.out_of_bounds(IVec3::new(5, 4, 4)));
+	}
 }
