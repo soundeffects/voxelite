@@ -3,9 +3,11 @@ use bevy::prelude::*;
 use bevy_infinite_grid::{InfiniteGridPlugin, InfiniteGridBundle};
 
 mod chunk;
+mod meshing_chunk; 
 mod voxel;
 mod world;
 mod player_controller;
+mod directions;
 
 fn main() {
   App::new()

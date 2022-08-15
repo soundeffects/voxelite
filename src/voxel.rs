@@ -1,6 +1,6 @@
 use block_mesh::{Voxel as MeshableVoxel, VoxelVisibility, MergeVoxel};
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Voxel {
 	material: bool
 }

@@ -4,8 +4,10 @@ use bevy::prelude::*;
 use futures_lite::future::{block_on, poll_once};
 use ndshape::{Shape, RuntimeShape};
 use crate::chunk::{Chunk, CHUNK_DIM};
+use crate::meshing_chunk::MeshingChunk;
 use crate::player_controller::{PlayerController, PlayerSettings};
 use crate::voxel::EMPTY;
+use crate::directions::Directions;
 
 pub struct WorldPlugin;
 
@@ -24,28 +26,33 @@ pub struct World {
 }
 
 impl World {
-	pub fn chunk_pos(world_position: Vec3) -> UVec3 {
+	fn chunk_pos(world_position: Vec3) -> UVec3 {
 		(world_position / CHUNK_DIM as f32).as_uvec3()
 	}
 
-	pub fn world_position(chunk_pos: UVec3) -> Vec3 {
-		(chunk_pos * CHUNK_DIM).as_vec3()
+	fn world_position(chunk_pos: UVec3) -> Vec3 {
+		chunk_pos.as_vec3() * CHUNK_DIM as f32
 	}
 
-	pub fn out_of_bounds(&self, chunk_pos: IVec3) -> bool {
+	fn bounded_add(&self, pos: UVec3, add: IVec3) -> Option<UVec3> {
+		let unbounded_pos = pos.as_ivec3() + add;
 		let bounds = self.shape.as_array();
-		let out = |coord: i32, bound_index: usize| {
-			coord < 0 || coord >= bounds[bound_index] as i32
+		let in_bounds = |coord: i32, bound_index: usize| {
+			coord >= 0 && coord < bounds[bound_index] as i32
 		};
-		out(chunk_pos.x, 0) || out(chunk_pos.y, 1) || out(chunk_pos.z, 2)
+		if in_bounds(unbounded_pos.x, 0) && in_bounds(unbounded_pos.y, 1)
+			&& in_bounds(unbounded_pos.z, 2) {
+			Some(unbounded_pos.as_uvec3())
+		} else {
+			None
+		}
 	}
 
-	pub fn generate(dimensions: [u32; 3]) -> Self {
+	fn generate(dimensions: [u32; 3]) -> Self {
 		let shape = RuntimeShape::<u32, 3>::new(dimensions);
 		let mut chunks = Vec::<Chunk>::new();
-
 		for index in 0..shape.size() {
-			info!("{} out of {} generated", index, shape.size());
+			info!("generated {} of {} chunks", index, shape.size());
 			chunks.push(
 				Chunk::generate(
 					UVec3::from_array(shape.delinearize(index)),
@@ -53,14 +60,28 @@ impl World {
 				)
 			);
 		}
+		World { shape, chunks, visible: HashSet::new() }
+	}
 
-		World {
-			shape,
-			chunks,
-			visible: HashSet::new()
+	fn get_meshing_chunk(&self, chunk_pos: UVec3) -> MeshingChunk {
+		let mut chunks = Vec::<&Chunk>::new();
+		let empty_chunk = Chunk::empty();
+		for direction in Directions::all() {
+			if let Some(pos)
+				= self.bounded_add(chunk_pos, direction.to_vector()) {
+				let index = self.shape.linearize(pos.to_array()) as usize;
+				chunks.push(&self.chunks[index]);
+			} else {
+				chunks.push(&empty_chunk);
+			}
 		}
+		let chunk_array = chunks.try_into().unwrap_or_else(
+			|_: Vec<&Chunk>| panic!("Seven chunks of data were not provided to \
+				the meshing chunk!"));
+		MeshingChunk::new(chunk_array)
 	}
 }
+
 
 #[derive(Component)]
 struct MeshResultTask(Task<MeshResult>);
@@ -81,17 +102,15 @@ fn spawn_mesh_tasks(
 		for x in -dist..dist {
 			for y in -dist..dist {
 				for z in -dist..dist {
-					let unbound_pos = player_chunk.as_ivec3() + IVec3::new(x, y, z);
-					if !world.out_of_bounds(unbound_pos) {
-						let chunk_pos = unbound_pos.as_uvec3();
-						if !world.visible.contains(&chunk_pos) {
-							let index = world.shape.linearize(chunk_pos.to_array());
-							let chunk = world.chunks[index as usize].clone();
+					if let Some(pos)
+						= world.bounded_add(player_chunk, IVec3::new(x, y, z)) {
+						if !world.visible.contains(&pos) {
+							let meshing_chunk = world.get_meshing_chunk(pos);
 							let task = thread_pool.spawn(async move {
-								MeshResult(chunk_pos, chunk.mesh())
+								MeshResult(pos, meshing_chunk.mesh())
 							});
 							commands.spawn().insert(MeshResultTask(task));
-							world.visible.insert(chunk_pos);
+							world.visible.insert(pos);
 						}
 					}
 				}
@@ -116,7 +135,9 @@ fn handle_mesh_tasks(
 				material: materials.add(material),
 				transform: Transform::from_translation(
 					World::world_position(chunk_pos)
-				).with_scale(Vec3::new(1.063, 1.063, 1.063)),
+				).with_scale(Vec3::from_array([1.0666; 3])),
+					// we scale the mesh so that it is approximately one meter per
+					// voxel.
 				..Default::default()
 			});
 			commands.entity(entity).remove::<MeshResultTask>();
@@ -127,17 +148,9 @@ fn handle_mesh_tasks(
 #[cfg(test)]
 mod tests {
 	use crate::world::World;
-	use bevy::math::IVec3;
 
 	#[test]
 	fn world_generation_succeeds() {
 		World::generate([4, 4, 4]);
-	}
-
-	#[test]
-	fn world_bounding_confirmation() {
-		let world = World::generate([4, 4, 4]);
-		assert!(world.out_of_bounds(IVec3::new(0, -1, 0)));
-		assert!(world.out_of_bounds(IVec3::new(5, 4, 4)));
 	}
 }
