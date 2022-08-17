@@ -64,21 +64,16 @@ impl World {
 	}
 
 	fn get_meshing_chunk(&self, chunk_pos: UVec3) -> MeshingChunk {
-		let mut chunks = Vec::<&Chunk>::new();
-		let empty_chunk = Chunk::empty();
-		for direction in Directions::all() {
+		let mut chunks: [Option<&Chunk>; 7] = [None; 7];
+		let directions = Directions::all();
+		for index in 0..chunks.len() {
 			if let Some(pos)
-				= self.bounded_add(chunk_pos, direction.to_vector()) {
-				let index = self.shape.linearize(pos.to_array()) as usize;
-				chunks.push(&self.chunks[index]);
-			} else {
-				chunks.push(&empty_chunk);
+				= self.bounded_add(chunk_pos, directions[index].to_vector()) {
+				let world_index = self.shape.linearize(pos.to_array()) as usize;
+				chunks[index] = Some(&self.chunks[world_index]);
 			}
 		}
-		let chunk_array = chunks.try_into().unwrap_or_else(
-			|_: Vec<&Chunk>| panic!("Seven chunks of data were not provided to \
-				the meshing chunk!"));
-		MeshingChunk::new(chunk_array)
+		MeshingChunk::new(chunks)
 	}
 }
 

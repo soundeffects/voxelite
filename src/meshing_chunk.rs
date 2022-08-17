@@ -20,27 +20,29 @@ impl MeshingChunk {
 	// these correspond to each direction in directions.rs
 	pub const COPY_SHAPES: [([u32; 3], [u32; 3], [u32; 3]); 7] = [
 		(ChunkShape::ARRAY, [0, 0, 0], [1, 1, 1]),
-		([1, 32, 32], [0, 0, 0], [0, 1, 1]),
 		([1, 32, 32], [31, 0, 0], [33, 1, 1]),
-		([32, 1, 32], [0, 0, 0], [1, 0, 1]),
+		([1, 32, 32], [0, 0, 0], [0, 1, 1]),
 		([32, 1, 32], [0, 31, 0], [1, 33, 1]),
-		([32, 32, 1], [0, 0, 0], [1, 1, 0]),
-		([32, 32, 1], [0, 0, 31], [1, 1, 33])
+		([32, 1, 32], [0, 0, 0], [1, 0, 1]),
+		([32, 32, 1], [0, 0, 31], [1, 1, 33]),
+		([32, 32, 1], [0, 0, 0], [1, 1, 0])
 	];
 
-	pub fn new(chunks: [&Chunk; 7]) -> Self {
+	pub fn new(chunks: [Option<&Chunk>; 7]) -> Self {
 		let mut mesh_chunk = Self { samples: [EMPTY; MeshChunkShape::USIZE] };
 		let iter = zip(chunks, Self::COPY_SHAPES);
-		for (chunk, (copy_shape, chunk_offset, meshing_offset)) in iter.take(1) {
-			copy3(
-				copy_shape,
-				&chunk.voxel_data,
-				&ChunkShape {},
-				chunk_offset,
-				&mut mesh_chunk.samples,
-				&MeshChunkShape {},
-				meshing_offset
-			);
+		for (chunk, (copy_shape, chunk_offset, meshing_offset)) in iter {
+			if let Some(valid_chunk) = chunk {
+				copy3(
+					copy_shape,
+					&valid_chunk.voxel_data,
+					&ChunkShape {},
+					chunk_offset,
+					&mut mesh_chunk.samples,
+					&MeshChunkShape {},
+					meshing_offset
+				);
+			}
 		}
 		mesh_chunk
 	}

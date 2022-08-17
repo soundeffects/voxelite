@@ -14,12 +14,6 @@ pub const CHUNK_EXP: u32 = 5;
 pub type ChunkShape = ConstPow2Shape3u32<CHUNK_EXP, CHUNK_EXP, CHUNK_EXP>;
 
 impl Chunk {
-	pub fn empty() -> Self {
-		Self {
-			voxel_data: [EMPTY; ChunkShape::USIZE]
-		}
-	}
-
 	pub fn generate(
 		_chunk_pos: UVec3,
 		_generator: impl Fn(UVec3) -> Voxel
