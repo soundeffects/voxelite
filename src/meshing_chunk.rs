@@ -17,6 +17,7 @@ pub struct MeshingChunk {
 }
 
 impl MeshingChunk {
+	// these correspond to each direction in directions.rs
 	pub const COPY_SHAPES: [([u32; 3], [u32; 3], [u32; 3]); 7] = [
 		(ChunkShape::ARRAY, [0, 0, 0], [1, 1, 1]),
 		([1, 32, 32], [0, 0, 0], [0, 1, 1]),
@@ -30,7 +31,7 @@ impl MeshingChunk {
 	pub fn new(chunks: [&Chunk; 7]) -> Self {
 		let mut mesh_chunk = Self { samples: [EMPTY; MeshChunkShape::USIZE] };
 		let iter = zip(chunks, Self::COPY_SHAPES);
-		for (chunk, (copy_shape, chunk_offset, meshing_offset)) in iter {
+		for (chunk, (copy_shape, chunk_offset, meshing_offset)) in iter.take(1) {
 			copy3(
 				copy_shape,
 				&chunk.voxel_data,
@@ -52,8 +53,8 @@ impl MeshingChunk {
 		greedy_quads(
 			&self.samples,
 			&MeshChunkShape {},
-			[1; 3],
-			[32; 3],
+			[0; 3],
+			[33; 3],
 			&faces,
 			&mut buffer
 		);

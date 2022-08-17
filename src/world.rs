@@ -135,7 +135,7 @@ fn handle_mesh_tasks(
 				material: materials.add(material),
 				transform: Transform::from_translation(
 					World::world_position(chunk_pos)
-				).with_scale(Vec3::from_array([1.0666; 3])),
+				).with_scale(Vec3::from_array([1.;3])),
 					// we scale the mesh so that it is approximately one meter per
 					// voxel.
 				..Default::default()
