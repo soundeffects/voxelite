@@ -3,14 +3,13 @@ name = "voxelite"
 version = "0.0.1"
 edition = "2021"
 authors = ["James Youngblood (soundeffects)"]
-description = "A voxel game, for adventurers, engineers, and socialites alike."
+description = "Tried my hand at building a better voxel game."
 license = "MIT OR Apache"
 
 [dependencies]
 bevy = "0.8"
 ndshape = "0.3"
 ndcopy = "0.3"
-block-mesh = "0.2"
 rand = "0.8.5"
 futures-lite = "1.12"
 bevy_infinite_grid = "0.5"

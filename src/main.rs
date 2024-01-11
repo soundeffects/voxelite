@@ -10,6 +10,7 @@ mod player_controller;
 mod directions;
 
 fn main() {
+    println!("{}", 1 + 1);
   App::new()
     .insert_resource(Msaa { samples: 4 })
     .add_plugins(DefaultPlugins)

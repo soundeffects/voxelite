@@ -32,7 +32,7 @@ impl Default for PlayerSettings {
 		Self {
 			view_distance: 1,
 			movement_speed: 20.0,
-			mouse_sensitivity: 0.5,
+			mouse_sensitivity: 0.1,
 		}
 	}
 }
