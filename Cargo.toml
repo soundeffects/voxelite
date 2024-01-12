@@ -7,9 +7,10 @@ description = "Tried my hand at building a better voxel game."
 license = "MIT OR Apache"
 
 [dependencies]
-bevy = "0.8"
+bevy = "0.12"
 ndshape = "0.3"
 ndcopy = "0.3"
+block-mesh = "0.2"
 rand = "0.8.5"
 futures-lite = "1.12"
-bevy_infinite_grid = "0.5"
+bevy_infinite_grid = "0.9"

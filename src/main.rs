@@ -1,6 +1,6 @@
 use bevy::pbr::wireframe::{WireframeConfig, WireframePlugin};
 use bevy::prelude::*;
-use bevy_infinite_grid::{InfiniteGridPlugin, InfiniteGridBundle};
+use bevy::render::{render_resource::WgpuFeatures, settings::{RenderCreation, WgpuSettings}, RenderPlugin};
 
 mod chunk;
 mod meshing_chunk; 
@@ -12,20 +12,9 @@ mod directions;
 fn main() {
     println!("{}", 1 + 1);
   App::new()
-    .insert_resource(Msaa { samples: 4 })
-    .add_plugins(DefaultPlugins)
-    .add_plugin(WireframePlugin)
-    .add_plugin(InfiniteGridPlugin)
-    .add_plugin(player_controller::PlayerControllerPlugin)
-    .add_plugin(world::WorldPlugin)
-    .add_startup_system(setup)
+    .add_plugins((DefaultPlugins.set(
+	RenderPlugin { render_creation: RenderCreation::Automatic(WgpuSettings { features: WgpuFeatures::POLYGON_MODE_LINE, ..default() }) }
+	), WireframePlugin, player_controller::PlayerControllerPlugin, world::WorldPlugin))
+    .insert_resource(WireframeConfig { global: true, default_color: Color::WHITE })
     .run();
-}
-
-fn setup(
-  mut commands: Commands,
-  mut wireframe_config: ResMut<WireframeConfig>
-) {
-  wireframe_config.global = true;
-  commands.spawn_bundle(InfiniteGridBundle::default());
 }

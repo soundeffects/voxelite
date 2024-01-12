@@ -14,11 +14,12 @@ pub struct WorldPlugin;
 impl Plugin for WorldPlugin {
 	fn build(&self, app: &mut App) {
 		app.insert_resource::<World>(World::generate([10, 4, 10]))
-			.add_system(spawn_mesh_tasks)
-			.add_system(handle_mesh_tasks);
+			.add_systems(Update, spawn_mesh_tasks)
+			.add_systems(Update, handle_mesh_tasks);
 	}
 }
 
+#[derive(Resource)]
 pub struct World {
 	shape: RuntimeShape<u32, 3>,
 	chunks: Vec<Chunk>,
@@ -104,7 +105,7 @@ fn spawn_mesh_tasks(
 							let task = thread_pool.spawn(async move {
 								MeshResult(pos, meshing_chunk.mesh())
 							});
-							commands.spawn().insert(MeshResultTask(task));
+							commands.spawn(MeshResultTask(task));
 							world.visible.insert(pos);
 						}
 					}
@@ -125,7 +126,7 @@ fn handle_mesh_tasks(
 			= block_on(poll_once(&mut task.0)) {
 			let mut material = StandardMaterial::from(Color::rgb(0., 0., 0.));
 			material.perceptual_roughness = 0.9;
-			commands.spawn_bundle(PbrBundle {
+			commands.spawn(PbrBundle {
 				mesh: meshes.add(mesh),
 				material: materials.add(material),
 				transform: Transform::from_translation(
