@@ -1,27 +1,27 @@
-use block_mesh::{Voxel as MeshableVoxel, VoxelVisibility, MergeVoxel};
+use block_mesh::{MergeVoxel, Voxel as MeshableVoxel, VoxelVisibility};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Voxel {
-	material: bool
+    material: bool,
 }
 
 pub const EMPTY: Voxel = Voxel { material: false };
 pub const FULL: Voxel = Voxel { material: true };
 
 impl MeshableVoxel for Voxel {
-	fn get_visibility(&self) -> VoxelVisibility {
-		if *self == EMPTY {
-			VoxelVisibility::Empty
-		} else {
-			VoxelVisibility::Opaque
-		}
-	}
+    fn get_visibility(&self) -> VoxelVisibility {
+        if *self == EMPTY {
+            VoxelVisibility::Empty
+        } else {
+            VoxelVisibility::Opaque
+        }
+    }
 }
 
 impl MergeVoxel for Voxel {
-	type MergeValue = Self;
+    type MergeValue = Self;
 
-	fn merge_value(&self) -> Self::MergeValue {
-		*self
-	}
+    fn merge_value(&self) -> Self::MergeValue {
+        *self
+    }
 }
